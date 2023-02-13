@@ -32,8 +32,12 @@ options:
 {{ docs | indent(2) }}
 extends_documentation_fragment:
   - theforeman.foreman.foreman
+{%- if module_type == 'info' %}
+  - theforeman.foreman.foreman.infomodule
+{%- else %}
   - theforeman.foreman.foreman.entity_state
   - theforeman.foreman.foreman.taxonomy
+{%- endif %}
 '''
 
 EXAMPLES = '''
@@ -51,10 +55,10 @@ entity:
       elements: dict
 '''
 
-from ansible_collections.theforeman.foreman.plugins.module_utils.foreman_helper import ForemanTaxonomicEntityAnsibleModule
+from ansible_collections.theforeman.foreman.plugins.module_utils.foreman_helper import {{ base_class }}
 
 
-class {{ module_name }}(ForemanTaxonomicEntityAnsibleModule):
+class {{ module_name }}({{ base_class }}):
     pass
 
 

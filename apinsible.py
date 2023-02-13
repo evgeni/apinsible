@@ -19,21 +19,33 @@ SKIP_PARAMS = (
     'organization_ids',
 )
 
+SKIP_PARAMS_INFO = (
+    'location_id',
+    'organization_id',
+    'search',
+    'order',
+    'page',
+    'per_page',
+)
+
 def map_expected_type(expected):
     return EXPECTED_TYPE_MAP.get(expected, 'str')
 
 def resource_capitalized(resource):
     return "".join([r.capitalize() for r in resource.split('_')])
 
-def module_name(resource, prefix='Foreman', suffix='Module'):
+def resource_module_name(resource, prefix='Foreman', suffix='Module'):
     capitalized_resource = resource_capitalized(resource)
     return f"{prefix}{capitalized_resource}{suffix}"
 
-def process_param(param):
+def info_module_name(resource, prefix='Foreman'):
+    return resource_module_name(resource, prefix, 'Info')
+
+def process_param(param, skip_list):
     if param.params:
         for p in param.params:
-            yield from process_param(p)
-    elif not param.name in SKIP_PARAMS:
+            yield from process_param(p, skip_list)
+    elif not param.name in skip_list:
         if param.name.endswith('_id'):
             param_type = 'entity'
             param_name = param.name.removesuffix('_id')
@@ -47,23 +59,38 @@ def process_param(param):
         doc = {param_name: {'description': [param.description.strip()], 'type': param_type, 'required': param.required}}
         yield (python,doc)
 
-def process_params(resource, server):
+def process_params(resource, server, module_type='resource'):
+    if module_type == 'resource':
+        action = 'create'
+        skip_list = SKIP_PARAMS
+    elif module_type == 'info':
+        action = 'index'
+        skip_list = SKIP_PARAMS_INFO
+    else:
+        raise Exception(f"unknown {module_type}")
     api = apypie.Api(uri=server, verify_ssl=False, api_version=2)
-    for p in api.resource(resource).action('create').params:
-        yield from process_param(p)
+    for p in api.resource(resource).action(action).params:
+        yield from process_param(p, skip_list)
 
 def main():
     parser = argparse.ArgumentParser(prog='apinsible')
     parser.add_argument('resource')
     parser.add_argument('--server', default='http://localhost:3000')
+    parser.add_argument('--type', default='resource', choices=['resource', 'info'])
     args = parser.parse_args()
 
     resource = args.resource
+    if args.type == 'info':
+        base_class = 'ForemanInfoAnsibleModule'
+        module_name = info_module_name(resource)
+    else:
+        base_class = 'ForemanTaxonomicEntityAnsibleModule'
+        module_name = resource_module_name(resource)
 
     inflector = apypie.inflector.Inflector()
     resource_pluralized = inflector.pluralize(resource)
 
-    options = process_params(resource_pluralized, args.server)
+    options = process_params(resource_pluralized, args.server, args.type)
     code = []
     docs = {}
     for (python,doc) in options:
@@ -78,7 +105,9 @@ def main():
         'resource_pluralized': resource_pluralized,
         'code': code,
         'docs': yaml.dump(docs, default_flow_style=False),
-        'module_name': module_name(resource),
+        'module_name': module_name,
+        'base_class': base_class,
+        'module_type': args.type,
     }
     print(template.render(context))
 
