@@ -48,15 +48,18 @@ def process_param(param, skip_list):
     elif not param.name in skip_list:
         if param.name.endswith('_id'):
             param_type = 'entity'
+            param_doc_type = 'str'
             param_name = param.name.removesuffix('_id')
         elif param.name.endswith('_ids'):
             param_type = 'entity_list'
+            param_doc_type = 'list'
             param_name = param.name.removesuffix('_ids')
         else:
             param_type = map_expected_type(param.expected_type)
+            param_doc_type = param_type
             param_name = param.name
         python = f"{param_name}=dict(required={param.required}, type='{param_type}'),"
-        doc = {param_name: {'description': [param.description.strip()], 'type': param_type, 'required': param.required}}
+        doc = {param_name: {'description': [param.description.strip()], 'type': param_doc_type, 'required': param.required}}
         yield (python,doc)
 
 def process_params(resource, server, module_type='resource'):
