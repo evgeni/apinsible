@@ -58,7 +58,11 @@ def process_param(param, skip_list):
             param_type = map_expected_type(param.expected_type)
             param_doc_type = param_type
             param_name = param.name
-        python = f"{param_name}=dict(required={param.required}, type='{param_type}'),"
+        if param.required:
+            required = f"required={param.required}, "
+        else:
+            required = ""
+        python = f"{param_name}=dict({required}type='{param_type}'),"
         doc = {param_name: {'description': [param.description.strip()], 'type': param_doc_type, 'required': param.required}}
         yield (python,doc)
 
