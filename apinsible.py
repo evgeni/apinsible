@@ -59,10 +59,18 @@ def process_param(param, skip_list):
             param_doc_type = param_type
             param_name = param.name
         if param.required:
-            required = f"required={param.required}, "
+            required = f"required={param.required}"
         else:
             required = ""
-        python = f"{param_name}=dict({required}type='{param_type}'),"
+        if param_type == "str":
+            param_type = ""
+        else:
+            param_type = f"type='{param_type}'"
+        if required and param_type:
+            space = ", "
+        else:
+            space = ""
+        python = f"{param_name}=dict({required}{space}{param_type}),"
         doc = {param_name: {'description': [param.description.strip()], 'type': param_doc_type, 'required': param.required}}
         yield (python,doc)
 
