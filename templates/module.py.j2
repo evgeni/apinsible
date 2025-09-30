@@ -29,7 +29,7 @@ description:
 author:
   - "SOMEONE"
 options:
-{{ docs | indent(2) }}
+{{ docs | indent(2, first=True) }}
 extends_documentation_fragment:
   - theforeman.foreman.foreman
 {%- if module_type == 'info' %}
